@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TextArea?>
+
+<AnchorPane prefHeight="480" prefWidth="490" xmlns:fx="http://javafx.com/fxml/1">
+	<!-- 가장 바깥쪽에 존재하는 프레임 -->
+	<children>
+		<ListView layoutX="15" layoutY="14" prefHeight="78" prefWidth="462"></ListView>
+		<Button layoutX="395" layoutY="103" prefHeight="29" prefWidth="82" text="PICK"></Button>
+		<TextArea editable="false" layoutX="15" layoutY="144" prefHeight="325" prefWidth="462"></TextArea>	
+	</children>
+</AnchorPane>
+
