@@ -1,5 +1,8 @@
 package controller;
 
+import org.jnetpcap.Pcap;
+import org.jnetpcap.PcapIf;
+
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -7,6 +10,10 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
 public class Main extends Application{
+	
+	
+	public static Pcap pcap = null;
+	public static PcapIf device = null;
 	
 	private Stage primaryStage;
 	private AnchorPane layout;
