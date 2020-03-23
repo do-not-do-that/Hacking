@@ -15,6 +15,17 @@ public class Main extends Application{
 	public static Pcap pcap = null;
 	public static PcapIf device = null;
 	
+	public static byte[] myIP = null; //공격자의 IP
+	public static byte[] senderIP = null;  //우리가 목표로 삼고 있는 피해자
+	public static byte[] targetIP = null;	//라우터
+	
+	//sender가 나에게 패킷을 보내도록 하는 것.
+	
+	public static byte[] myMAC = null;
+	public static byte[] senderMAC = null;
+	public static byte[] targetMAC = null;
+	
+	
 	private Stage primaryStage;
 	private AnchorPane layout;
 	

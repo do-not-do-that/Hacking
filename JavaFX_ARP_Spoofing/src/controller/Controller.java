@@ -1,11 +1,18 @@
 package controller;
 
+import java.net.InetAddress;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 import org.jnetpcap.Pcap;
+import org.jnetpcap.PcapHeader;
 import org.jnetpcap.PcapIf;
+import org.jnetpcap.nio.JBuffer;
+import org.jnetpcap.nio.JMemory;
+import org.jnetpcap.packet.JRegistry;
+import org.jnetpcap.protocol.lan.Ethernet;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -14,6 +21,8 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import model.ARP;
 
 public class Controller implements Initializable{
 	
@@ -26,6 +35,17 @@ public class Controller implements Initializable{
 	@FXML
 	private Button pickButton;
 	
+	@FXML
+	private TextField myIP;
+	
+	@FXML
+	private TextField senderIP;
+	
+	@FXML
+	private TextField targetIP;
+	
+	@FXML
+	private Button getMACButton;
 	
 	//ListView에 담길 수 있는 배열을 만들어 줄 것임!
 	ObservableList<String> networkList = FXCollections.observableArrayList();
@@ -73,6 +93,35 @@ public class Controller implements Initializable{
 		}
 		textArea.appendText("장치 선택: "+ Main.device.getName()+"\n"); //장치 이름 출력해주기
 		textArea.appendText("네트워크 장치를 활성화하는데 성공했습니다.");
+		
+	}
+	
+	
+	
+	public void getMACAction() {
+		if(!pickButton.isDisable()) { //아직 장치를 선택하지 않았다면
+			textArea.appendText("네트워크 장치를 먼저 선택해주세요,\n");
+			return;
+		}
+		
+		ARP arp = new ARP();
+		Ethernet eth = new Ethernet();
+		PcapHeader header = new PcapHeader(JMemory.POINTER);
+		JBuffer buf = new JBuffer(JMemory.POINTER);
+		ByteBuffer buffer = null;
+		
+		int id = JRegistry.mapDLTToId(Main.pcap.datalink());
+		
+		try {
+			Main.myMAC = Main.device.getHardwareAddress();
+			Main.myIP = InetAddress.getByName(myIP.getText()).getAddress();
+			Main.senderIP = InetAddress.getByName(senderIP.getText()).getAddress();
+			Main.targetIP = InetAddress.getByName(targetIP.getText()).getAddress();
+		}catch(Exception e) {
+			textArea.appendText("IP 주소가 잘못되었습니다.\n");
+			return;
+		}
+		
 		
 	}
 	
