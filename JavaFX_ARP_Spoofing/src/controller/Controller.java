@@ -12,6 +12,7 @@ import org.jnetpcap.PcapIf;
 import org.jnetpcap.nio.JBuffer;
 import org.jnetpcap.nio.JMemory;
 import org.jnetpcap.packet.JRegistry;
+import org.jnetpcap.packet.PcapPacket;
 import org.jnetpcap.protocol.lan.Ethernet;
 
 import javafx.collections.FXCollections;
@@ -23,6 +24,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import model.ARP;
+import model.Util;
 
 public class Controller implements Initializable{
 	
@@ -92,7 +94,7 @@ public class Controller implements Initializable{
 			return;
 		}
 		textArea.appendText("장치 선택: "+ Main.device.getName()+"\n"); //장치 이름 출력해주기
-		textArea.appendText("네트워크 장치를 활성화하는데 성공했습니다.");
+		textArea.appendText("네트워크 장치를 활성화하는데 성공했습니다.\n");
 		
 	}
 	
@@ -121,6 +123,56 @@ public class Controller implements Initializable{
 			textArea.appendText("IP 주소가 잘못되었습니다.\n");
 			return;
 		}
+		
+		myIP.setDisable(true); //더이상 수정 할 수 없도록 해줌.
+		senderIP.setDisable(true);
+		targetIP.setDisable(true);
+		getMACButton.setDisable(true);
+		
+		arp = new ARP();
+		arp.makeARPRequest(Main.myMAC, Main.myIP, Main.targetIP);
+		buffer = ByteBuffer.wrap(arp.getPacket());
+		if (Main.pcap.sendPacket(buffer) != Pcap.OK) {
+			System.out.println(Main.pcap.getErr());
+		}
+		
+		textArea.appendText("타겟에게 ARP Request를 보냈습니다.\n"+ 
+				Util.bytesToString(arp.getPacket())+"\n");
+		
+		
+		
+		//    [여기부터 reply 구현]
+		
+		
+		Main.targetMAC = new byte[6]; //targetMAC을 초기화해서 맥주소를 담을 수 있게 함.
+		while(Main.pcap.nextEx(header,buf) != Pcap.NEXT_EX_NOT_OK) {
+			//패킷을 캡쳐하는데 오류가 발생하지않으면
+			PcapPacket packet = new PcapPacket(header,buf);
+			packet.scan(id);
+			
+			byte[] sourceIP =  new byte[4]; //나한테 보낸 사람의 IP를 확인하기.
+			System.arraycopy(packet.getByteArray(0, packet.size()), 28, sourceIP, 0, 4);
+			if (packet.getByte(12)== 0x08 && packet.getByte(13)== 0x06 
+					&& packet.getByte(20)== 0x00 
+					&& packet.getByte(22)==0x02 
+					&& Util.bytesToString(sourceIP).equals(Util.bytesToString(Main.targetIP))
+							&& packet.hasHeader(eth)) { //arp 패킷인지 확인하는 작업
+				//arp는 0806이었음
+				Main.targetMAC = eth.source(); //캡쳐한 패킷에 타겟의 맥주소를 넣어줌.
+				break;
+				
+			} else {
+				continue;
+			}
+		}
+		
+		textArea.appendText("타겟의 맥 주소: " + 
+		Util.bytesToString(Main.targetMAC) + "\n");
+		//타겟 (공유기)한테 arp request 패킷을 보내고, 건너온 reply를 받아서 arp 패킷인지 확인한 후에
+		//얻어온 맥주소를 타겟 맥주소로 넣어주고 얻어온 맥주소를 출력해옴.
+		
+		
+		
 		
 		
 	}

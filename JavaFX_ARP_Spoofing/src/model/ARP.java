@@ -40,7 +40,7 @@ public class ARP {	//ARP패킷을 정의한 클래스이다.
 	}
 	
 	
-	public byte[] getPcaket() {
+	public byte[] getPacket() {
 		
 		byte[] bytes = new byte[42]; //ARP패킷은 총 42바이트로 구성되어 있음. 
 		System.arraycopy(destinationMAC, 0, bytes, 0, destinationMAC.length); //0번째부터 6만큼 destinationMAC 들어감.
