@@ -199,7 +199,7 @@ public class Controller implements Initializable{
 
 		long senderStartTime = System.currentTimeMillis();
 		
-		Main.senderMAC = new byte[6]; //targetMAC을 초기화해서 맥주소를 담을 수 있게 함.
+		Main.senderMAC = new byte[6]; //senderMAC을 초기화해서 맥주소를 담을 수 있게 함.
 		while(Main.pcap.nextEx(header,buf) != Pcap.NEXT_EX_NOT_OK) {
 			//패킷을 캡쳐하는데 오류가 발생하지않으면
 			
@@ -213,8 +213,8 @@ public class Controller implements Initializable{
 			PcapPacket packet = new PcapPacket(header,buf);
 			packet.scan(id);
 			
-			byte[] senderIP =  new byte[4]; //나한테 보낸 사람의 IP를 확인하기.
-			System.arraycopy(packet.getByteArray(0, packet.size()), 28, senderIP, 0, 4);
+			byte[] sourceIP =  new byte[4]; //나한테 보낸 사람의 IP를 확인하기.
+			System.arraycopy(packet.getByteArray(0, packet.size()), 28, sourceIP, 0, 4);
 			if (packet.getByte(12)== 0x08 && packet.getByte(13)== 0x06 
 					&& packet.getByte(20)== 0x00 
 					&& packet.getByte(21)==0x02 
