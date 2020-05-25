@@ -31,7 +31,7 @@
 			try{
 				pstmt.close();
 			}catch(Exception e){
-				str += "<br>conn Exception : "+ e.getMessage();
+				str += "<br>connection Exception : "+ e.getMessage();
 			}
 		}
 	}
